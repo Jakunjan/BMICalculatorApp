@@ -1,1 +1,2 @@
-# BMICalculatorApp
+# BMICalculatorAppbmi calculator and 
+# This is a userfriendly 
