@@ -1,0 +1,147 @@
+import tkinter as tk
+from tkinter import ttk
+from tkinter import messagebox
+import csv
+class Room:
+    def __init__(self, number, type, price, availability=True):
+        self.number = number
+        self.type = type
+        self.price = price
+        self.availability = availability
+
+class User:
+    def __init__(self, username, password):
+        self.username = username
+        self.password = password
+
+class HotelBookingSystem:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Hotel Booking System")
+        self.root.geometry("600x400")
+
+        self.create_widgets()
+        self.load_data()
+
+    def create_widgets(self):
+        # Login Window
+        self.login_window = tk.Toplevel(self.root)
+        self.login_window.title("Login")
+        self.login_window.geometry("300x200")
+
+        self.username_label = tk.Label(self.login_window, text="Username:")
+        self.username_label.pack()
+        self.username_entry = tk.Entry(self.login_window)
+        self.username_entry.pack()
+
+        self.password_label = tk.Label(self.login_window, text="Password:")
+        self.password_label.pack()
+        self.password_entry = tk.Entry(self.login_window, show="*")
+        self.password_entry.pack()
+
+        self.login_button = tk.Button(self.login_window, text="Login", command=self.login)
+        self.login_button.pack()
+
+        # Main Application
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill="both", expand=True)
+
+        self.tab1 = ttk.Frame(self.notebook)
+        self.tab2 = ttk.Frame(self.notebook)
+        self.tab3 = ttk.Frame(self.notebook)
+
+        self.notebook.add(self.tab1, text="Available Rooms")
+        self.notebook.add(self.tab2, text="Make a Booking")
+        self.notebook.add(self.tab3, text="View Bookings")
+
+        # Tab 1: Available Rooms
+        self.treeview = ttk.Treeview(self.tab1, columns=("Room Number", "Type", "Price", "Availability"))
+        self.treeview.heading("#0", text="Room Number")
+        self.treeview.heading("#1", text="Type")
+        self.treeview.heading("#2", text="Price")
+        self.treeview.heading("#3", text="Availability")
+        self.treeview.pack(fill="both", expand=True)
+
+        # Tab 2: Make a Booking
+        tk.Label(self.tab2, text="Room Number:").pack()
+        self.room_entry = tk.Entry(self.tab2)
+        self.room_entry.pack()
+
+        tk.Label(self.tab2, text="Check-in Date (YYYY-MM-DD):").pack()
+        self.checkin_entry = tk.Entry(self.tab2)
+        self.checkin_entry.pack()
+
+        tk.Label(self.tab2, text="Check-out Date (YYYY-MM-DD):").pack()
+        self.checkout_entry = tk.Entry(self.tab2)
+        self.checkout_entry.pack()
+
+        self.book_button = tk.Button(self.tab2, text="Book Now", command=self.make_booking)
+        self.book_button.pack()
+
+        # Tab 3: View Bookings
+        self.bookings_text = tk.Text(self.tab3)
+        self.bookings_text.pack(fill="both", expand=True)
+
+    def load_data(self):
+        self.rooms = {
+            501: Room(501, 'Single', 100),
+            502: Room(502, 'Double', 200),
+            503: Room(503, 'Suite', 300)
+        }
+        self.users = {}
+        self.bookings = {}
+
+        try:
+            with open('user_datas.csv', 'r') as datas_file:
+                csv_reader = csv.reader(datas_file)
+                next(csv_reader)  # Skip header
+                for row in csv_reader:
+                    username, password = row
+                    self.users[username] = User(username, password)
+        except FileNotFoundError:
+            pass
+
+        try:
+            with open('bookings.csv', 'r') as bookings_file:
+                csv_reader = csv.reader(bookings_file)
+                for row in csv_reader:
+                    room_number, check_in_date, check_out_date = row
+                    self.bookings[int(room_number)] = {'check_in_date': check_in_date, 'check_out_date': check_out_date}
+        except FileNotFoundError:
+            pass
+
+        self.update_available_rooms()
+
+    def update_available_rooms(self):
+        self.treeview.delete(*self.treeview.get_children())
+        for room_number, room in self.rooms.items():
+            self.treeview.insert("", "end", text=room_number, values=(room.type, room.price, "Available" if room.availability else "Occupied"))
+
+    def make_booking(self):
+        room_number = int(self.room_entry.get())
+        check_in_date = self.checkin_entry.get()
+        check_out_date = self.checkout_entry.get()
+
+        if room_number in self.rooms:
+            if self.rooms[room_number].availability:
+                self.rooms[room_number].availability = False
+                self.bookings[room_number] = {'check_in_date': check_in_date, 'check_out_date': check_out_date}
+                self.update_available_rooms()
+                messagebox.showinfo("Booking Successful", f"Booking successful for Room {room_number} from {check_in_date} to {check_out_date}")
+            else:
+                messagebox.showerror("Booking Error", "Sorry, the room is not available for the specified dates.")
+        else:
+            messagebox.showerror("Booking Error", "Invalid room number.")
+
+    def login(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+
+        if username in self.users and self.users[username].password == password:
+            self.login_window.destroy()
+        else:
+            messagebox.showerror("Login Failed", "Invalid username or password.")
+
+root = tk.Tk()
+app = HotelBookingSystem(root)
+root.mainloop()
